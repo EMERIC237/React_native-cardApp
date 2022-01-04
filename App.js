@@ -1,13 +1,11 @@
 import React, { useState } from "react";
-import {
-  StyleSheet,
-  Text,
-  View,
-  Button,
-  TouchableOpacity,
-  TextInput,
-} from "react-native";
-let id = 1;
+import { ScrollView, StyleSheet, View } from "react-native";
+import Item from "./components/Item";
+import CreateCard from "./components/CreateCard";
+import EditCard from "./components/EditCard";
+import Card from "./components/Card";
+import { Entypo } from "@expo/vector-icons";
+
 const Data = [
   {
     id: "bd7acbea-c1b1-46c2-aed5-3ad53abb28ba",
@@ -15,140 +13,112 @@ const Data = [
     name: "etienne",
     age: 12,
   },
-  {
-    id: "3ac68afc-c605-48d3-a4f8-fbd91aa97f63",
-    title: "Second Item",
-    name: "etienne",
-    age: 12,
-  },
-  {
-    id: "58694a0f-3da1-471f-bd96-145571e29d72",
-    title: "Third Item",
-    name: "etienne",
-    age: 12,
-  },
 ];
-
-const Form = ({ onSubmit }) => {
-  const [title, setTitle] = useState("");
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  console.log(title, name, age);
-  return (
-    <View>
-      <TextInput
-        placeholder="enter the card title"
-        style={styles.input}
-        onChangeText={(title) => setTitle(title)}
-        value={title}
-      />
-
-      <TextInput
-        placeholder="enter the name"
-        style={styles.input}
-        onChangeText={(name) => setName(name)}
-        value={name}
-      />
-
-      <TextInput
-        placeholder="enter the age"
-        style={styles.input}
-        onChangeText={(age) => setAge(age)}
-        value={age}
-      />
-
-      <TouchableOpacity activeOpacity={0.3}>
-        <Button
-          title="Add"
-          onPress={() => {
-            onSubmit({ id: id++, title, name, age });
-            setTitle("");
-            setName("");
-            setAge("");
-          }}
-          color="blue"
-        />
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-const Item = ({ onDelete, cardId, title, name, age }) => {
-  return (
-    <View style={styles.card}>
-      <Text style={styles.item}> {title} </Text>
-      <Text style={styles.item}> {name} </Text>
-      <Text style={styles.item}> {age} </Text>
-
-      <Button
-        title="Update"
-        color="green"
-        onPress={() => {
-          onDelete(cardId);
-        }}
-      />
-
-      <Button
-        title="Delete"
-        color="red"
-        onPress={() => {
-          onDelete(cardId);
-        }}
-      />
-    </View>
-  );
-};
 
 export default function App() {
   const [cards, setCards] = useState(Data);
+  const [cardIdToEdit, setCardIdToEdit] = useState(0);
+  const [initialCard, setInitialCard] = useState({
+    title: "",
+    name: "",
+    age: "",
+  });
+  const [editing, setEditing] = useState(false);
+  const [adding, setAdding] = useState(false);
+  console.log(cards);
 
   const deleteCard = (cardId) => {
     setCards((currentCards) => {
       return currentCards.filter((card) => card.id !== cardId);
     });
   };
+  const updateCard = (cardId, cardValue) => {
+    let cardIndex = cards.findIndex((card) => card.id === cardId);
+    let newArr = [...cards];
+    newArr[cardIndex] = cardValue;
+    setCards(newArr);
+    setEditing(false);
+  };
+  const updateClickHandler = (cardId, title, name, age) => {
+    setCardIdToEdit(cardId);
+    setInitialCard((currentCard) => ({
+      ...currentCard,
+      title,
+      name,
+      age,
+    }));
+    setEditing(true);
+  };
+  const cancelHandler = () => {
+    if (adding) setAdding(false);
+    if (editing) setEditing(false);
+  };
 
   const addCard = (cardValue) => {
-    setCards((currentCard) => [...currentCard, cardValue]);
+    setCards((currentCards) => [...currentCards, cardValue]);
+    setAdding(false);
   };
-  console.log(cards);
-
+  let content = cardIdToEdit ? (
+    <EditCard
+      cardId={cardIdToEdit}
+      initialCard={initialCard}
+      updateCard={updateCard}
+      visible={editing}
+      onCancel={cancelHandler}
+    />
+  ) : (
+    <CreateCard
+      addCard={addCard}
+      initialCard={initialCard}
+      visible={adding}
+      onCancel={cancelHandler}
+    />
+  );
   return (
-    <View style={styles.container}>
-      <Form onSubmit={addCard} />
-
-      {cards.map((obj) => (
-        <Item
-          title={obj.title}
-          name={obj.name}
-          age={obj.age}
-          key={obj.id}
-          cardId={obj.id}
-          onDelete={deleteCard}
-        />
-      ))}
+    <View style={styles.screen}>
+      <Card
+        title="add"
+        style={styles.icon}
+        onPress={() => {
+          setAdding(true);
+        }}
+      >
+        <Entypo name="add-to-list" size={50} color="black" />
+      </Card>
+      <View style={styles.inputContainer}>{content}</View>
+      <ScrollView contentContainerStyle={styles.listContainer}>
+        {cards.map((obj, index) => (
+          <Item
+            title={obj.title}
+            name={obj.name}
+            age={obj.age}
+            key={index}
+            cardId={obj.id}
+            onDelete={deleteCard}
+            onUpdate={updateClickHandler}
+          />
+        ))}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
     padding: 40,
+    marginTop: 40,
   },
-  card: {
-    backgroundColor: "beige",
-    margin: 10,
-    padding: 10,
-    justifyContent: "center",
+  listContainer: {
+    flex:1,
+    paddingVertical: 30,
+    marginHorizontal: 10,
   },
-  item: {
-    fontSize: 14,
+  inputContainer: {
+    padding: 40,
   },
-  input: {
-    height: 40,
-    margin: 12,
-    borderWidth: 1,
-    padding: 10,
+  icon: {
+    alignItems: "center",
+    marginHorizontal:70,
   },
 });
